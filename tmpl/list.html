@@ -8,7 +8,7 @@
 <h1>List</h1>
 {{with .List}}
   {{range .}}
-  <p>[<a href="/detail/{{.Id}}">Thangka is {{.Name}}</a>]</p>
+  <p>[<a href="/detail/?id={{.Id}}">Thangka is {{.Name}}</a>]</p>
   {{end}}
 {{end}}
 </body>

@@ -23,55 +23,51 @@ func renderTemplate(w http.ResponseWriter, tmpl string, t *tangka.Tangka) {
 	}
 }
 
-// edit the exist tangka
-func editHandle(w http.ResponseWriter, r *http.Request) {
-	id := r.URL.Path[len("/edit/"):]
-	t, err := tangka.GetTangkaById(id)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+// parse the common post data
+func parseOneTangkaHandle(fn func(http.ResponseWriter, *http.Request, *tangka.Tangka)) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		id := r.FormValue("id")
+		t, err := tangka.GetTangkaById(id)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		fn(w, r, t)
 	}
+}
+
+// edit the exist tangka
+func editHandle(w http.ResponseWriter, r *http.Request, t *tangka.Tangka) {
 	renderTemplate(w, "edit", t)
 }
 
 // save new tangka
-func saveHandle(w http.ResponseWriter, r *http.Request)  {
-	id := r.URL.Path[len("/save/"):]
+func saveHandle(w http.ResponseWriter, r *http.Request, t *tangka.Tangka)  {
 	newName := r.FormValue("name")
-
-	t, err := tangka.GetTangkaById(id)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
 	t.Name = newName
-	err = t.Save()
+	err := t.Save()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	http.Redirect(w, r, "/detail/" + t.Id, http.StatusFound)
+	http.Redirect(w, r, "/detail/?id=" + t.Id, http.StatusFound)
 }
 
 // remove the tangka
-func deleteHandle(w http.ResponseWriter, r *http.Request)  {
-	id := r.URL.Path[len("/delete/"):]
-
-	t, err := tangka.GetTangkaById(id)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	err = t.Delete()
+func deleteHandle(w http.ResponseWriter, r *http.Request, t *tangka.Tangka)  {
+	err := t.Delete()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	http.Redirect(w, r, "/list", http.StatusFound)
+}
+
+// show the detail of tangka
+func detailHandle(w http.ResponseWriter, r *http.Request, t *tangka.Tangka) {
+	renderTemplate(w, "detail", t)
 }
 
 // list all the tangka
@@ -83,17 +79,6 @@ func listHandle(w http.ResponseWriter, r *http.Request)  {
 	}
 
 	templates.ExecuteTemplate(w, "list.html", tangkaList)
-}
-
-// show the detail of tangka
-func detailHandle(w http.ResponseWriter, r *http.Request) {
-	id := r.URL.Path[len("/detail/"):]
-	t, err := tangka.GetTangkaById(id)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	renderTemplate(w, "detail", t)
 }
 
 var (
@@ -122,10 +107,10 @@ func main() {
 		return
 	}
 
-	http.HandleFunc("/detail/", detailHandle)
-	http.HandleFunc("/edit/", editHandle)
-	http.HandleFunc("/save/", saveHandle)
-	http.HandleFunc("/delete/", deleteHandle)
+	http.HandleFunc("/detail/", parseOneTangkaHandle(detailHandle))
+	http.HandleFunc("/edit/", parseOneTangkaHandle(editHandle))
+	http.HandleFunc("/save/", parseOneTangkaHandle(saveHandle))
+	http.HandleFunc("/delete/", parseOneTangkaHandle(deleteHandle))
 	http.HandleFunc("/list", listHandle)
 
 	http.ListenAndServe(LISTEN_PORT, nil)

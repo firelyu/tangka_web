@@ -6,10 +6,10 @@
 </head>
 <body>
 <h1>Upload {{.Id}}</h1>
-<form action="/save/{{.Id}}" method="POST">
+<form action="/save/?id={{.Id}}" method="POST">
   <div><textarea name="name" rows="20" cols="80">{{printf "%s" .Name}}</textarea></div>
   <div><input type="submit" value="Save"></div>
 </form>
-<p>[<a href="/delete/{{.Id}}">Delete</a>]</p>
+<p>[<a href="/delete/?id={{.Id}}">Delete</a>]</p>
 </body>
 </html>
