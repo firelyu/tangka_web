@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>List</title>
+</head>
+<body>
+<h1>List</h1>
+{{with .List}}
+  {{range .}}
+  <p>[<a href="/detail/{{.Id}}">Thangka is {{.Name}}</a>]</p>
+  {{end}}
+{{end}}
+</body>
+</html>
