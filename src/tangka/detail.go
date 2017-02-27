@@ -16,8 +16,6 @@ const (
 
 const (
 	UploadFolder        = "upload"
-	DefaultTangkaName   = "唐卡"
-	DefaultTangkaAuthor = "柔软的胖"
 	idLength            = 8
 )
 
@@ -70,20 +68,10 @@ func NewTangka(name string, author string) *Tangka {
 		return nil
 	}
 
-	usedName := DefaultTangkaName
-	if name != "" {
-		usedName = name
-	}
-
-	usedAuthor := DefaultTangkaAuthor
-	if author != "" {
-		usedAuthor = author
-	}
-
 	return &Tangka{
 		Id:     id,
-		Name:   usedName,
-		Author: usedAuthor,
+		Name:   name,
+		Author: author,
 	}
 }
 

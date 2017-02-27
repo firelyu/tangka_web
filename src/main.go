@@ -5,7 +5,7 @@ import (
 	"github.com/firelyu/tangka_web/src/tangka"
 	"html/template"
 	"io/ioutil"
-	"fmt"
+	"github.com/astaxie/beego/logs"
 )
 
 const (
@@ -24,11 +24,13 @@ func renderTemplate(w http.ResponseWriter, tmpl string, t *tangka.Tangka) {
 }
 
 // parse the common post data
-func parseOneTangkaHandle(fn func(http.ResponseWriter, *http.Request, *tangka.Tangka)) http.HandlerFunc {
+func parseOneTangkaHandle(fn func(http.ResponseWriter, *http.Request, *tangka.Tangka), name string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		logs.Info("Handle " + name)
 		id := r.FormValue("id")
 		t, err := tangka.GetTangkaById(id)
 		if err != nil {
+			logs.Error(err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -41,8 +43,17 @@ func editHandle(w http.ResponseWriter, r *http.Request, t *tangka.Tangka) {
 	renderTemplate(w, "edit", t)
 }
 
-// save new tangka
-func saveHandle(w http.ResponseWriter, r *http.Request, t *tangka.Tangka)  {
+// save new/edited tangka
+func saveHandle(w http.ResponseWriter, r *http.Request)  {
+	logs.Info("Handle /save/")
+	id := r.FormValue("id")
+	t, _ := tangka.GetTangkaById(id)
+	if t == nil {
+		// New save tangka
+		logs.Info("Save new tangak", t)
+		t = &tangka.Tangka{Id:id}
+	}
+
 	newName := r.FormValue("name")
 	t.Name = newName
 	err := t.Save()
@@ -72,6 +83,7 @@ func detailHandle(w http.ResponseWriter, r *http.Request, t *tangka.Tangka) {
 
 // list all the tangka
 func listHandle(w http.ResponseWriter, r *http.Request)  {
+	logs.Info("Handle /list/")
 	tangkaList, err := tangka.ListAllTangka()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -79,6 +91,19 @@ func listHandle(w http.ResponseWriter, r *http.Request)  {
 	}
 
 	templates.ExecuteTemplate(w, "list.html", tangkaList)
+}
+
+//  the homepage
+func homeHandle(w http.ResponseWriter, r *http.Request) {
+	logs.Info("Handle /")
+	h := tangka.NewHomepage("I Love Thangka.")
+	templates.ExecuteTemplate(w, "index.html", h)
+}
+
+func addHandle(w http.ResponseWriter, r *http.Request) {
+	logs.Info("Handle /add/")
+	t := tangka.NewTangka("", "")
+	templates.ExecuteTemplate(w, "add.html", t)
 }
 
 var (
@@ -94,6 +119,9 @@ func cacheTemplates(dir string) error {
 
 	var tmplPathList []string
 	for _, file := range tmplList {
+		if file.IsDir() {
+			continue
+		}
 		tmplPathList = append(tmplPathList, dir + "/" + file.Name())
 	}
 	templates = template.Must(template.ParseFiles(tmplPathList...))
@@ -103,15 +131,17 @@ func cacheTemplates(dir string) error {
 
 func main() {
 	if err := cacheTemplates(TEMPLATE_DIR); err != nil {
-		fmt.Println(err.Error())
+		logs.Error(err.Error())
 		return
 	}
 
-	http.HandleFunc("/detail/", parseOneTangkaHandle(detailHandle))
-	http.HandleFunc("/edit/", parseOneTangkaHandle(editHandle))
-	http.HandleFunc("/save/", parseOneTangkaHandle(saveHandle))
-	http.HandleFunc("/delete/", parseOneTangkaHandle(deleteHandle))
-	http.HandleFunc("/list", listHandle)
+	http.HandleFunc("/detail/", parseOneTangkaHandle(detailHandle, "/detail/"))
+	http.HandleFunc("/edit/", parseOneTangkaHandle(editHandle, "/edit/"))
+	http.HandleFunc("/save/", saveHandle)
+	http.HandleFunc("/delete/", parseOneTangkaHandle(deleteHandle, "/delete/"))
+	http.HandleFunc("/add/", addHandle)
+	http.HandleFunc("/list/", listHandle)
+	http.HandleFunc("/", homeHandle)
 
 	http.ListenAndServe(LISTEN_PORT, nil)
 
